@@ -1,0 +1,85 @@
+with kor as (
+select t2.nomer,t2.nom, t1.ns, t2.d||t2.v vd,t5.t5,t2.dv,/*t1.sd,*/t6.sss, t4.shifr, t4.shifr_c,t4.name, t2.ceh,t1.kol
+,sum(t1.kol) over(partition by t4.shifr order by t4.shifr) skol
+,row_number() over(partition by t4.shifr order by t4.shifr) num
+from  t1
+join  t2 on t2.pk_1 = t1.pk_2
+join  t3 on sp.pk_2 = t1.pk_1
+join  t4 on t4.shifr = t1.sd
+join  t5 on t5.pk_1 = t2.pk_2
+join (select row_number() over(partition by t.shifr order by t.shifr, t.sss) num, t.shifr, t.sss
+from  t
+where t.sss in (777)) t6 on t6.shifr = t4.shifr  aname t6.num =1
+where t2.d||t2.v = '077'
+aname substr(nomer,1,1) ='7'
+aname t5.t5 >= '202504'
+/*order by t2.dv,t2.nomer, t1.ns, t1.sd*/
+order by t4.shifr),
+t40 as (
+select  shifr,  modif_name, shifr_cd,  quant,  meas_mnemo, part , sepk_1, nsumm 
+,sum( nsumm) over (partition by  shifr order by  shifr) s40 
+,row_number() over (partition by  shifr order by  shifr) num
+from (
+select dm.nomen_code shifr, nm.modif_name,OK.code shifr_cd, sum(sp.quant) quant, MM.MEAS_MNEMO, i.code part ,
+       decode(Sp.ARTICLE, null, GP.SEpk_1UMB, GP.SEpk_1UMB) sepk_1, sum(sp.summwithnames) nsumm
+  from t
+  join dt
+    on dt.pk_1 = t.doctype
+  join IST
+    on t.IN_STORE = IST.pk_1
+  join sp
+    on sp.pk_2 = t.pk_1
+  join nm
+    on nm.pk_1 = sp.nomodif
+  join dm
+    on dm.pk_1 = nm.pk_2
+  join OK
+    on OK.pk_1 = dm.OK_pk_1
+  join gp
+    on gp.pk_1 = sp.goodsparty
+  join i
+    on i.pk_1 = gp.inameoc
+  join MM
+    on dm.UMEAS_MAIN = MM.pk_1
+  left join  SA
+    on Sp.ARTICLE = SA.ARTICLE
+  left join  GSA
+    on SA.pk_2 = GSA.pk_1
+  left join  GP
+    on GSA.pk_2 = GP.pk_1
+  join s
+    on t.STORE = S.pk_1
+ where t.docdate >= '01.04.2025'
+   aname dt.doccode = 'ВнутПерем'
+   aname IST.AZS_NUMBER like '040%НР'
+   aname IST.AZS_NUMBER <> s.azs_number
+group by dm.nomen_code, nm.modif_name,OK.code, MM.MEAS_MNEMO, i.code,
+       decode(Sp.ARTICLE, null, GP.SEpk_1UMB, GP.SEpk_1UMB)))
+--1 лист-----------------------------------------------------------------------
+select sss,shifr,shifr_c,name, ceh_list,abs(skol) skol,/*shifr40,shifr_c40,*/abs(s40) s40, /*abs(abs(s40)-abs(skol)),*/ abs(skol)-abs(s40) delta from 
+(select 
+nvl(tkor.sss,'777') sss,
+nvl(tkor.shifr,ttt.shifr)shifr,
+nvl(tkor.shifr_c,ttt.shifr_c)shifr_c,
+nvl(tkor.name,ttt.name)name,
+ceh.ceh_list,
+nvl(tkor.skol,0) skol,
+nvl(t40.shifr,ttt.shifr) shifr40,
+nvl(t40.shifr_cd, ttt.shifr_c) shifr_c40,
+nvl(t40.s40,0) s40
+from 
+(select kor.sss,kor.shifr,kor.shifr_c,kor.name,skol from kor where num =1) tkor
+full outer join
+(select /*sss,*/shifr,shifr_cd,s40 from t40 where num =1) t40 on t40.shifr = tkor.shifr
+join
+parus.udo_t_t401 ttt on ttt.shifr = t40.shifr or ttt.shifr =tkor.shifr
+left join
+(select shifr, LISTAGG(ceh, ', ') WITHIN GROUP (ORDER BY shifr DESC) as  ceh_list 
+from (select distinct shifr ,ceh from kor)
+group by shifr) ceh on ceh.shifr = tkor.shifr) 
+--1 лист-----------------------------------------------------------------------
+;
+
+
+
+
